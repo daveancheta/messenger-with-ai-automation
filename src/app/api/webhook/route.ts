@@ -32,10 +32,8 @@ export async function POST(req: NextRequest) {
     if (messageText) {
       console.log(`From: ${senderId} — ${messageText}`);
 
-      // 👇 Generate a reply based on what they said
       const reply = getAutoReply(messageText);
 
-      // 👇 Send the reply back
       await sendReply(senderId, reply);
     }
   }
@@ -43,7 +41,6 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ status: 'ok' });
 }
 
-// ✅ Auto-reply logic — customize this!
 function getAutoReply(messageText: any) {
   const text = messageText.toLowerCase();
 
@@ -59,11 +56,9 @@ function getAutoReply(messageText: any) {
     return 'We are open Monday to Friday, 9AM - 6PM.';
   }
 
-  // Default reply for anything else
   return 'Thanks for your message! We will get back to you shortly. 😊';
 }
 
-// ✅ Send reply function
 async function sendReply(recipientId: any, message: any) {
   const response = await fetch(
     'https://graph.facebook.com/v19.0/me/messages',
