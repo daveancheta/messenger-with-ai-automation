@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 const VERIFY_TOKEN = process.env.FACEBOOK_VERIFY_TOKEN;
 const PAGE_ACCESS_TOKEN = process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
 
+// ✅ Webhook verification
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const mode      = searchParams.get('hub.mode');
@@ -15,6 +16,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 }
 
+// ✅ Receive message and auto-reply
 export async function POST(req: NextRequest) {
   const body = await req.json();
 
@@ -24,12 +26,61 @@ export async function POST(req: NextRequest) {
 
   for (const entry of body.entry) {
     const webhookEvent = entry.messaging[0];
-    const senderId = webhookEvent.sender.id;
+    const senderId    = webhookEvent.sender.id;
+    const messageText = webhookEvent.message?.text;
 
-    if (webhookEvent.message) {
-      console.log(`Message from ${senderId}: ${webhookEvent.message.text}`);
+    if (messageText) {
+      console.log(`From: ${senderId} — ${messageText}`);
+
+      // 👇 Generate a reply based on what they said
+      const reply = getAutoReply(messageText);
+
+      // 👇 Send the reply back
+      await sendReply(senderId, reply);
     }
   }
 
   return NextResponse.json({ status: 'ok' });
+}
+
+// ✅ Auto-reply logic — customize this!
+function getAutoReply(messageText: any) {
+  const text = messageText.toLowerCase();
+
+  if (text.includes('hello') || text.includes('hi')) {
+    return 'Hi there! 👋 Thanks for reaching out. How can we help you?';
+  }
+
+  if (text.includes('price') || text.includes('cost')) {
+    return 'For pricing details, please visit our website or email us at hello@yoursite.com';
+  }
+
+  if (text.includes('hours') || text.includes('open')) {
+    return 'We are open Monday to Friday, 9AM - 6PM.';
+  }
+
+  // Default reply for anything else
+  return 'Thanks for your message! We will get back to you shortly. 😊';
+}
+
+// ✅ Send reply function
+async function sendReply(recipientId: any, message: any) {
+  const response = await fetch(
+    'https://graph.facebook.com/v19.0/me/messages',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${PAGE_ACCESS_TOKEN}`
+      },
+      body: JSON.stringify({
+        recipient: { id: recipientId },
+        message:   { text: message }
+      })
+    }
+  );
+
+  const data = await response.json();
+  console.log('Reply sent:', data);
+  return data;
 }
