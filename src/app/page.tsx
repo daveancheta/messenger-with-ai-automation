@@ -64,7 +64,7 @@ function Home() {
 
                 <div className='flex-1 overflow-y-auto space-y-4 p-2 scrollable-div'>
                     <div className='flex flex-col items-start gap-2'>
-                        <div className='bg-black dark:bg-white rounded-lg p-4 w-fit max-w-60'>
+                        <div className='bg-black dark:bg-white rounded-lg p-4 w-fit max-w-100'>
                             <span className='text-white dark:text-black text-sm'>Hi there! 👋 I’m here to help with Full-Stack Development. Got a question about frontend, backend, databases, or deploying your project? Ask me anything!</span>
                         </div>
                     </div>
