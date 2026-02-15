@@ -4,7 +4,7 @@ import ollama from 'ollama'
 export async function POST(req: NextRequest) {
     const { prompt } = await req.json()
 
-    const systemInstruction = `You are a friendly AI assistant dont answer long just be more specific but dont answer short explain it`
+    const systemInstruction = `You are a friendly AI assistant. Keep your answers clear and concise — not too long, not too short. Explain things briefly but with enough detail to be helpful.`
 
     try {
         const response = await ollama.chat({
