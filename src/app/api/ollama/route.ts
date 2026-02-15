@@ -1,25 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
-import ollama from 'ollama'
 
 export async function POST(req: NextRequest) {
     const { prompt } = await req.json()
 
-    const systemInstruction = `You are a friendly AI assistant`
+    const systemInstruction = `You are a friendly AI assistant...`
 
     try {
-        const response = await ollama.chat({
-            model: 'llama3.2',
-            messages: [{ role: 'user', content: `Instruction: ${systemInstruction}\n\nUser question: ${prompt}` }],
+        // ✅ Server calls the tunnel — no CORS issue
+        const res = await fetch("https://dome-throwing-tin-conclusions.trycloudflare.com/" + "/api/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                model: "llama3.2",
+                prompt: `Instruction: ${systemInstruction}\n\nUser: ${prompt}`,
+                stream: false
+            })
         })
+
+        const data = await res.json()
 
         return NextResponse.json({
             success: true,
-            prompt,
-            response: response.message.content.replace(/\*/g, '') || ''
+            response: data.response.replace(/\*/g, '')
         }, { status: 200 })
+
     } catch (error) {
-        return NextResponse.json({
-            success: false
-        }, { status: 400 })
+        return NextResponse.json({ success: false }, { status: 400 })
     }
 }
