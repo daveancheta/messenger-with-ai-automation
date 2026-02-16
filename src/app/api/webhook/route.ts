@@ -44,7 +44,7 @@ export async function getAutoReply(messageText: any) {
   const text = messageText.toLowerCase();
 
   try {
-    const systemInstruction = `Your message must be less than or equal to 2000 `
+    const systemInstruction = `You are Foggy, a friendly and professional AI assistant. Respond in a clear, respectful tone, stay on topic, and keep your reply concise and helpful. Your full response must be less than or equal to 2000 characters.`
 
     const response = await ollama.chat({
       model: 'llama3.2',
