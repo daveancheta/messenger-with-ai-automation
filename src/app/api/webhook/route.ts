@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import ollama from "ollama"
 
 const VERIFY_TOKEN = process.env.FACEBOOK_VERIFY_TOKEN;
 const PAGE_ACCESS_TOKEN = process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
 
-// ✅ Webhook verification
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const mode      = searchParams.get('hub.mode');
-  const token     = searchParams.get('hub.verify_token');
+  const mode = searchParams.get('hub.mode');
+  const token = searchParams.get('hub.verify_token');
   const challenge = searchParams.get('hub.challenge');
 
   if (mode === 'subscribe' && token === VERIFY_TOKEN) {
@@ -16,7 +16,6 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 }
 
-// ✅ Receive message and auto-reply
 export async function POST(req: NextRequest) {
   const body = await req.json();
 
@@ -26,13 +25,13 @@ export async function POST(req: NextRequest) {
 
   for (const entry of body.entry) {
     const webhookEvent = entry.messaging[0];
-    const senderId    = webhookEvent.sender.id;
+    const senderId = webhookEvent.sender.id;
     const messageText = webhookEvent.message?.text;
 
     if (messageText) {
       console.log(`From: ${senderId} — ${messageText}`);
 
-      const reply = getAutoReply(messageText);
+      const reply = await getAutoReply(messageText);
 
       await sendReply(senderId, reply);
     }
@@ -41,25 +40,24 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ status: 'ok' });
 }
 
-function getAutoReply(messageText: any) {
+export async function getAutoReply(messageText: any) {
   const text = messageText.toLowerCase();
 
-  if (text.includes('hello') || text.includes('hi')) {
-    return 'Hi there! 👋 Thanks for reaching out. How can we help you?';
-  }
+  try {
+    const systemInstruction = `Your message must be less than or equal to 2000 `
 
-  if (text.includes('price') || text.includes('cost')) {
-    return 'For pricing details, please visit our website or email us at hello@yoursite.com';
-  }
+    const response = await ollama.chat({
+      model: 'llama3.2',
+      messages: [{ role: 'user', content: `Instruction: ${systemInstruction}\n\nUser question: ${text}` }],
+    })
 
-  if (text.includes('hours') || text.includes('open')) {
-    return 'We are open Monday to Friday, 9AM - 6PM.';
+    return response.message.content.replace(/\*/g, '').toString() || ''
+  } catch (error) {
+    console.log(error)
   }
-
-  return 'Thanks for your message! We will get back to you shortly. 😊';
 }
 
-async function sendReply(recipientId: any, message: any) {
+export async function sendReply(recipientId: any, message: any) {
   const response = await fetch(
     'https://graph.facebook.com/v19.0/me/messages',
     {
@@ -70,7 +68,7 @@ async function sendReply(recipientId: any, message: any) {
       },
       body: JSON.stringify({
         recipient: { id: recipientId },
-        message:   { text: message }
+        message: { text: message }
       })
     }
   );
