@@ -18,7 +18,6 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-
   if (body.object !== 'page') {
     return NextResponse.json({ error: 'Not a page event' }, { status: 404 });
   }
@@ -27,28 +26,33 @@ export async function POST(req: NextRequest) {
     const webhookEvent = entry.messaging[0];
     const senderId = webhookEvent.sender.id;
     const messageText = webhookEvent.message?.text;
+    const profileRes = await fetch(
+      `https://graph.facebook.com/${senderId}?fields=name&access_token=${PAGE_ACCESS_TOKEN}`
+    );
+
+    const res = await profileRes.json()
 
     if (messageText) {
-      console.log(`From: ${senderId} — ${messageText}`);
+      console.log(`From: ${res.name} — ${messageText}`);
 
-      const reply = await getAutoReply(messageText);
+      const reply = await getAutoReply(messageText, res.name);
 
-      await sendReply(senderId, reply);
+      await sendReply(senderId, reply, res.name);
     }
   }
 
   return NextResponse.json({ status: 'ok' });
 }
 
-export async function getAutoReply(messageText: any) {
+export async function getAutoReply(messageText: any, name: string) {
   const text = messageText.toLowerCase();
 
   try {
-    const systemInstruction = `You are Foggy, a friendly and professional AI assistant. Respond in a clear, respectful tone, stay on topic, and keep your reply concise and helpful. Your full response must be less than or equal to 2000 characters.`
+    const systemInstruction = `You are Foggy, a warm, professional AI assistant. Address the user by their name, be courteous and approachable, and provide clear, well-structured answers. Stay on topic, avoid unnecessary elaboration, and keep your full response under 2000 characters.`
 
     const response = await ollama.chat({
       model: 'llama3.2',
-      messages: [{ role: 'user', content: `Instruction: ${systemInstruction}\n\nUser question: ${text}` }],
+      messages: [{ role: 'user', content: `Instruction: ${systemInstruction}\n\nUser name: ${name}\n\nUser question: ${text}` }],
     })
 
     return response.message.content.replace(/\*/g, '').toString() || ''
@@ -57,7 +61,7 @@ export async function getAutoReply(messageText: any) {
   }
 }
 
-export async function sendReply(recipientId: any, message: any) {
+export async function sendReply(recipientId: any, message: any, name: any) {
   const response = await fetch(
     'https://graph.facebook.com/v19.0/me/messages',
     {
